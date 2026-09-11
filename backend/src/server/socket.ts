@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import { config } from "../config";
+import { readProxyEmail, resolveProxyUser } from "../auth/proxyAuth";
 import { Server } from "socket.io";
 import { PrismaClient } from "../generated/client";
 import { AuthModeService } from "../auth/authMode";
@@ -104,6 +106,13 @@ export const registerSocketHandlers = ({
 
   io.use(async (socket, next) => {
     try {
+      if (config.authMode === "proxy") {
+        const email = readProxyEmail(socket.handshake.headers);
+        const user = email ? await resolveProxyUser(prisma, email) : null;
+        if (!user?.isActive) return next(new Error("Authentication required"));
+        getState(socket).principal = { kind: "user", userId: user.id };
+        return next();
+      }
       const tokenFromAuth = socket.handshake.auth?.token as string | undefined;
       const tokenFromCookie = (() => {
         const cookies = parseCookieHeader(socket.handshake.headers.cookie);

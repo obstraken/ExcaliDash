@@ -60,6 +60,7 @@ interface Config {
   trustProxy: boolean | number;
   drawingsCacheTtlMs: number;
   authMode: AuthMode;
+  proxyAdminEmail: string;
   jwtSecret: string;
   jwtAccessExpiresIn: string;
   jwtRefreshExpiresIn: string;
@@ -90,9 +91,9 @@ interface Config {
   updateCheck: UpdateCheckConfig;
 }
 
-export type AuthMode = "local" | "hybrid" | "oidc_enforced" | "disabled";
-// True only for env-enforced (OIDC-backed) modes; `local` uses the runtime toggle, `disabled` turns auth off.
-export const authModeEnablesAuth = (mode: AuthMode): boolean => mode === "hybrid" || mode === "oidc_enforced";
+export type AuthMode = "local" | "hybrid" | "oidc_enforced" | "disabled" | "proxy";
+// True only for env-enforced modes (OIDC-backed or trusted proxy); `local` uses the runtime toggle, `disabled` turns auth off.
+export const authModeEnablesAuth = (mode: AuthMode): boolean => mode === "hybrid" || mode === "oidc_enforced" || mode === "proxy";
 
 interface OidcConfig {
   enabled: boolean;
@@ -234,12 +235,13 @@ const parseAuthMode = (rawValue: string | undefined): AuthMode => {
     normalized === "local" ||
     normalized === "hybrid" ||
     normalized === "oidc_enforced" ||
-    normalized === "disabled"
+    normalized === "disabled" ||
+    normalized === "proxy"
   ) {
     return normalized;
   }
   throw new Error(
-    "Invalid AUTH_MODE. Expected one of: local, hybrid, oidc_enforced, disabled",
+    "Invalid AUTH_MODE. Expected one of: local, hybrid, oidc_enforced, disabled, proxy",
   );
 };
 
@@ -263,7 +265,7 @@ const resolveOidcConfig = (authMode: AuthMode): OidcConfig => {
     );
   }
 
-  const enabled = authModeEnablesAuth(authMode);
+  const enabled = authMode === "hybrid" || authMode === "oidc_enforced";
   const missingRequired = Object.entries(requiredWhenEnabled)
     .filter(([, value]) => !value)
     .map(([key]) => key);
@@ -353,6 +355,7 @@ export const config: Config = {
   trustProxy: parseTrustProxy(),
   drawingsCacheTtlMs: parseDrawingsCacheTtlMs(),
   authMode: resolvedAuthMode,
+  proxyAdminEmail: readString("PROXY_ADMIN_EMAIL", "").trim().toLowerCase(),
   jwtSecret: resolveJwtSecret(resolvedNodeEnv),
   jwtAccessExpiresIn: readString("JWT_ACCESS_EXPIRES_IN", "15m"),
   jwtRefreshExpiresIn: readString("JWT_REFRESH_EXPIRES_IN", "7d"),
@@ -382,6 +385,9 @@ export const config: Config = {
   linkShare: resolveLinkShareConfig(),
   updateCheck: resolveUpdateCheckConfig(),
 };
+if (config.authMode === "proxy" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.proxyAdminEmail)) {
+  throw new Error("AUTH_MODE=proxy requires a valid PROXY_ADMIN_EMAIL");
+}
 if (config.nodeEnv === "production") {
   validateProductionConfig(config);
 }

@@ -3,6 +3,7 @@ import { Shield, LogIn, KeyRound } from 'lucide-react';
 import type { AdminUser } from './types';
 
 type UsersTableProps = {
+  proxyAuth?: boolean;
   users: AdminUser[];
   loading: boolean;
   currentUserId?: string;
@@ -15,6 +16,7 @@ type UsersTableProps = {
 };
 
 export const UsersTable: React.FC<UsersTableProps> = ({
+  proxyAuth = false,
   users,
   loading,
   currentUserId,
@@ -43,8 +45,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">User</th>
             <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Role</th>
             <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Active</th>
-            <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Must Reset</th>
-            <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Actions</th>
+            {!proxyAuth && <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Must Reset</th>}
+            {!proxyAuth && <th className="px-4 sm:px-6 py-3 font-bold text-slate-600 dark:text-neutral-300">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -58,7 +60,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 )}
               </td>
               <td className="px-4 sm:px-6 py-4">
-                <select
+                {proxyAuth ? <span className="font-bold">{user.role}</span> : <select
                   value={user.role}
                   onChange={(event) => onRoleChange(user, event.target.value)}
                   disabled={user.id === currentUserId}
@@ -66,7 +68,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 >
                   <option value="USER">USER</option>
                   <option value="ADMIN">ADMIN</option>
-                </select>
+                </select>}
               </td>
               <td className="px-4 sm:px-6 py-4">
                 <button
@@ -81,6 +83,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   {user.isActive ? 'Active' : 'Inactive'}
                 </button>
               </td>
+              {!proxyAuth && <>
               <td className="px-4 sm:px-6 py-4">
                 <button
                   onClick={() => onToggleMustReset(user)}
@@ -117,11 +120,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   </button>
                 </div>
               </td>
+              </>}
             </tr>
           ))}
           {users.length === 0 && !loading && (
             <tr>
-              <td colSpan={5} className="px-6 py-6 text-slate-500 dark:text-neutral-500 font-medium">
+              <td colSpan={proxyAuth ? 3 : 5} className="px-6 py-6 text-slate-500 dark:text-neutral-500 font-medium">
                 No users found.
               </td>
             </tr>

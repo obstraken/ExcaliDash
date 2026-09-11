@@ -3,12 +3,14 @@ import { RefreshCw, UserPlus } from "lucide-react";
 import { displayFontFamily } from "../../utils/displayFont";
 
 type AdminHeaderProps = {
+  proxyAuth?: boolean;
   loadingUsers: boolean;
   onRefreshUsers: () => void;
   onToggleCreateUser: () => void;
 };
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({
+  proxyAuth = false,
   loadingUsers,
   onRefreshUsers,
   onToggleCreateUser,
@@ -22,7 +24,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         Admin
       </h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-neutral-400 font-medium">
-        User management and impersonation
+        {proxyAuth ? "Accounts and roles come from the portal sign-in." : "User management and impersonation"}
       </p>
     </div>
     <div className="flex items-center gap-2 flex-wrap">
@@ -33,12 +35,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       >
         <RefreshCw size={16} /> Refresh
       </button>
-      <button
+      {!proxyAuth && <button
         onClick={onToggleCreateUser}
         className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl border-2 border-black dark:border-neutral-700 bg-indigo-600 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"
       >
         <UserPlus size={16} /> New User
-      </button>
+      </button>}
     </div>
   </div>
 );

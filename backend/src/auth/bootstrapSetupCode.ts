@@ -69,7 +69,7 @@ const shouldRequireBootstrapSetupCode = async (
   options: { authMode: AuthMode }
 ): Promise<boolean> => {
   if (options.authMode === "oidc_enforced") return false;
-  if (options.authMode === "disabled") return false;
+  if (options.authMode === "disabled" || options.authMode === "proxy") return false;
 
   const { systemConfig, bootstrapUser, activeUsers } = await getBootstrapState(prisma, {
     authMode: options.authMode,
@@ -97,7 +97,7 @@ export const issueBootstrapSetupCodeIfRequired = async (
   params: IssueBootstrapSetupCodeParams
 ): Promise<{ issued: boolean; code?: string; expiresAt?: Date }> => {
   const { prisma, ttlMs, authMode, reason } = params;
-  if (authMode === "oidc_enforced" || authMode === "disabled") {
+  if (authMode === "oidc_enforced" || authMode === "disabled" || authMode === "proxy") {
     return { issued: false };
   }
 

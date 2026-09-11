@@ -5,9 +5,15 @@ export const authEnv: readonly EnvVarSpec[] = [
     name: "AUTH_MODE",
     group: "Authentication",
     kind: "enum",
-    values: ["local", "hybrid", "oidc_enforced", "disabled"],
+    values: ["local", "hybrid", "oidc_enforced", "disabled", "proxy"],
     default: "local",
-    doc: "Authentication mode: local credentials, hybrid, OIDC-enforced, or disabled (no login; every request runs as a single shared local user — do not expose such an instance to untrusted networks).",
+    doc: "Authentication mode: local credentials, hybrid, OIDC-enforced, proxy (trusted gateway sets X-Authenticated-Email; never expose the backend directly), or disabled (no login; every request runs as a single shared local user — do not expose such an instance to untrusted networks).",
+  },
+  {
+    name: "PROXY_ADMIN_EMAIL",
+    group: "Authentication",
+    kind: "string",
+    doc: "Required in proxy mode: the only email granted the ADMIN role; every other portal account is a USER.",
   },
   {
     name: "JWT_SECRET",
