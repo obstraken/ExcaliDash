@@ -11,7 +11,8 @@ import { ApiKeysCard } from "./profile/ApiKeysCard";
 import { PasswordCard } from "./profile/PasswordCard";
 
 export const Profile: React.FC = () => {
-    const { user: authUser, logout, authEnabled } = useAuth();
+    const { user: authUser, logout, authEnabled, authMode } = useAuth();
+    const isProxyAuth = authMode === "proxy";
     const navigate = useNavigate();
     const mustResetPassword = Boolean(authUser?.mustResetPassword);
     const [collections, setCollections] = useState<Collection[]>([]);
@@ -221,7 +222,7 @@ export const Profile: React.FC = () => {
 	                                            : "flex-1 px-4 py-3 bg-slate-50 dark:bg-neutral-800 border-2 border-slate-200 dark:border-neutral-700 rounded-xl text-slate-600 dark:text-neutral-400 cursor-not-allowed"
 	                                    }
 	                                />
-		                                {!showEmailForm && (
+		                                {!isProxyAuth && !showEmailForm && (
 		                                    <button
 		                                        onClick={() => {
 		                                            setShowEmailForm(true);
@@ -309,14 +310,14 @@ export const Profile: React.FC = () => {
                     </div>
                 </div>
 
-                <ApiKeysCard disabled={mustResetPassword} onSuccess={setSuccess} />
+                {!isProxyAuth && <ApiKeysCard disabled={mustResetPassword} onSuccess={setSuccess} />}
 
-                <PasswordCard
+                {!isProxyAuth && <PasswordCard
                     mustResetPassword={mustResetPassword}
                     logout={logout}
                     onError={setError}
                     onSuccess={setSuccess}
-                />
+                />}
             </div>
         </Layout>
     );

@@ -32,7 +32,8 @@ This file and `backend/.env.example` are generated from that registry; do not ed
 
 | Variable | Default | Required | Description |
 | --- | --- | --- | --- |
-| `AUTH_MODE` | `local` | No | Authentication mode: local credentials, hybrid, OIDC-enforced, or disabled (no login; every request runs as a single shared local user — do not expose such an instance to untrusted networks). Allowed: local, hybrid, oidc_enforced, disabled. |
+| `AUTH_MODE` | `local` | No | Authentication mode: local credentials, hybrid, OIDC-enforced, proxy (trusted gateway sets X-Authenticated-Email; never expose the backend directly), or disabled (no login; every request runs as a single shared local user — do not expose such an instance to untrusted networks). Allowed: local, hybrid, oidc_enforced, disabled, proxy. |
+| `PROXY_ADMIN_EMAIL` | — | No | Required in proxy mode: the only email granted the ADMIN role; every other portal account is a USER. |
 | `JWT_SECRET` | _(none — secret)_ | In production | Secret used to sign JWTs; an ephemeral random secret is generated in dev when unset. |
 | `JWT_ACCESS_EXPIRES_IN` | `15m` | No | Access-token lifetime (vercel/ms style duration). |
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | No | Refresh-token lifetime (vercel/ms style duration). |

@@ -1,7 +1,7 @@
 import { PrismaClient } from "../generated/client";
 import { getEffectiveRegistrationEnabled } from "./accessPolicy";
 
-type AuthMode = "local" | "hybrid" | "oidc_enforced" | "disabled";
+type AuthMode = "local" | "hybrid" | "oidc_enforced" | "disabled" | "proxy";
 
 type PasswordPolicyPayload = {
   minLength: number;

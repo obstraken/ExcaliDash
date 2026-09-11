@@ -171,7 +171,8 @@ describe("authMode service", () => {
     });
   });
 
-  it("authModeEnablesAuth is true only for the OIDC-backed modes", () => {
+  it("authModeEnablesAuth is true only for the env-enforced modes", () => {
+    expect(authModeEnablesAuth("proxy")).toBe(true);
     expect(authModeEnablesAuth("hybrid")).toBe(true);
     expect(authModeEnablesAuth("oidc_enforced")).toBe(true);
     expect(authModeEnablesAuth("local")).toBe(false);

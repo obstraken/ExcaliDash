@@ -9,6 +9,7 @@ import {
   authLogin,
   authRegister,
   isAxiosError,
+  startPortalSignIn,
 } from '../api';
 
 interface User {
@@ -26,7 +27,7 @@ interface AuthContextType {
   authEnabled: boolean | null;
   registrationEnabled: boolean;
   authStatusError: string | null;
-  authMode: 'local' | 'hybrid' | 'oidc_enforced';
+  authMode: 'local' | 'hybrid' | 'oidc_enforced' | 'proxy';
   oidcEnabled: boolean;
   oidcEnforced: boolean;
   oidcProvider: string | null;
@@ -51,7 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [authStatusError, setAuthStatusError] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<'local' | 'hybrid' | 'oidc_enforced'>('local');
+  const [authMode, setAuthMode] = useState<'local' | 'hybrid' | 'oidc_enforced' | 'proxy'>('local');
   const [oidcEnabled, setOidcEnabled] = useState(false);
   const [oidcEnforced, setOidcEnforced] = useState(false);
   const [oidcProvider, setOidcProvider] = useState<string | null>(null);
@@ -64,6 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     try {
       const isShareFlow = window.location.pathname.startsWith("/shared/");
+      let nextAuthMode: AuthContextType['authMode'] = 'local';
 
       try {
         const statusResponse = await authStatus();
@@ -77,8 +79,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAuthEnabled(enabled);
         localStorage.setItem(AUTH_ENABLED_CACHE_KEY, String(enabled));
         setRegistrationEnabled(Boolean(statusResponse?.registrationEnabled));
-        const nextAuthMode =
-          statusResponse?.authMode === 'hybrid' || statusResponse?.authMode === 'oidc_enforced'
+        nextAuthMode =
+          statusResponse?.authMode === 'hybrid' || statusResponse?.authMode === 'oidc_enforced' || statusResponse?.authMode === 'proxy'
             ? statusResponse.authMode
             : 'local';
         setAuthMode(nextAuthMode);
@@ -98,9 +100,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(null);
           return;
         }
-      } catch {
+      } catch (error) {
+        // Proxy mode refuses disabled accounts with an explicit message; show it instead of a connectivity hint.
+        const refusal = isAxiosError(error) && error.response?.status === 403 && typeof error.response.data?.message === "string"
+          ? error.response.data.message
+          : null;
         const cachedAuthEnabled = localStorage.getItem(AUTH_ENABLED_CACHE_KEY);
-        if (cachedAuthEnabled === "false") {
+        if (cachedAuthEnabled === "false" && !refusal) {
           setAuthStatusError(null);
           setAuthEnabled(false);
           setRegistrationEnabled(false);
@@ -116,7 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         setAuthStatusError(
-          "Unable to reach the backend API. Check BACKEND_URL, FRONTEND_URL, and your reverse proxy configuration."
+          refusal || "Unable to reach the backend API. Check BACKEND_URL, FRONTEND_URL, and your reverse proxy configuration."
         );
         setAuthEnabled(null);
         setRegistrationEnabled(false);
@@ -152,10 +158,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const response = await authMe();
         setUser(response.user);
         localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-      } catch {
+      } catch (error) {
         if (isShareFlow) {
           localStorage.removeItem(USER_KEY);
           setUser(null);
+          return;
+        }
+        if (nextAuthMode === 'proxy') {
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+          if (isAxiosError(error) && error.response?.status === 401) startPortalSignIn();
+          else {
+            setAuthStatusError("Unable to load your portal account. Retry or contact your administrator.");
+            setAuthEnabled(null);
+          }
           return;
         }
         try {
@@ -243,6 +259,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    if (authMode === 'proxy') {
+      localStorage.removeItem(USER_KEY);
+      window.location.assign('/oauth2/sign_out?rd=%2Foauth2%2Fsign_in');
+      return;
+    }
     void authLogout().catch(() => undefined);
     localStorage.removeItem(USER_KEY);
     setUser(null);

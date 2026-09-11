@@ -58,7 +58,7 @@ export type RegisterAdminRoutesDeps = {
   ) => { accessToken: string; refreshToken: string };
   getRefreshTokenExpiresAt: () => Date;
   config: {
-    authMode: "local" | "hybrid" | "oidc_enforced" | "disabled";
+    authMode: "local" | "hybrid" | "oidc_enforced" | "disabled" | "proxy";
     enableAuditLogging: boolean;
     enableRefreshTokenRotation: boolean;
     oidc: { enabled: boolean; providerName: string; jitProvisioning: boolean };

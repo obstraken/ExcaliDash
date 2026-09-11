@@ -31,7 +31,7 @@ export type RegisterOidcRoutesDeps = {
   getRefreshTokenExpiresAt: () => Date;
   isMissingRefreshTokenTableError: (error: unknown) => boolean;
   config: {
-    authMode: "local" | "hybrid" | "oidc_enforced" | "disabled";
+    authMode: "local" | "hybrid" | "oidc_enforced" | "disabled" | "proxy";
     jwtSecret: string;
     enableRefreshTokenRotation: boolean;
     enableAuditLogging: boolean;

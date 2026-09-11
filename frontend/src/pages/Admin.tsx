@@ -23,7 +23,8 @@ import {
 } from "../utils/impersonation";
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
-  const { user: authUser, authEnabled } = useAuth();
+  const { user: authUser, authEnabled, authMode } = useAuth();
+  const isProxyAuth = authMode === "proxy";
   const isAdmin = authUser?.role === "ADMIN";
   const passwordPolicy = getPasswordPolicy();
   const {
@@ -263,12 +264,13 @@ export const Admin: React.FC = () => {
     >
       {" "}
       <AdminHeader
+        proxyAuth={isProxyAuth}
         loadingUsers={loadingUsers}
         onRefreshUsers={loadUsers}
         onToggleCreateUser={() => setCreateOpen((value) => !value)}
       />{" "}
       <AdminStatusMessages success={success} error={error} />{" "}
-      {createOpen && (
+      {!isProxyAuth && createOpen && (
         <CreateUserForm
           email={createEmail}
           name={createName}
@@ -292,7 +294,7 @@ export const Admin: React.FC = () => {
           onActiveChange={setCreateActive}
         />
       )}{" "}
-      <AccessControlCard
+      {!isProxyAuth && <AccessControlCard
         registrationEnabled={accessControl.registrationEnabled}
         localRegistrationAllowed={accessControl.localRegistrationAllowed}
         oidcEnabled={accessControl.oidcEnabled}
@@ -301,8 +303,8 @@ export const Admin: React.FC = () => {
         loading={accessControl.loading}
         onToggleRegistration={accessControl.toggleRegistration}
         onToggleOidcJitProvisioning={accessControl.toggleOidcJitProvisioning}
-      />{" "}
-      <LoginRateLimitCard
+      />}{" "}
+      {!isProxyAuth && <LoginRateLimitCard
         loading={loginRateLimit.loading}
         saving={loginRateLimit.saving}
         autoSaveQueued={loginRateLimit.autoSaveQueued}
@@ -320,8 +322,9 @@ export const Admin: React.FC = () => {
         onMaxAttemptsChange={loginRateLimit.setMaxAttempts}
         onResetIdentifierChange={loginRateLimit.setResetIdentifier}
         onReset={loginRateLimit.reset}
-      />{" "}
+      />}{" "}
       <UsersTable
+        proxyAuth={isProxyAuth}
         users={users}
         loading={loadingUsers}
         currentUserId={authUser?.id}

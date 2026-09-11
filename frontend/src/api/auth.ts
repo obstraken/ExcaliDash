@@ -24,12 +24,13 @@ let csrfToken: string | null = null;
 let csrfHeaderName = "x-csrf-token";
 let csrfTokenPromise: Promise<void> | null = null;
 let refreshPromise: Promise<void> | null = null;
+let proxyAuth = false;
 
 export interface AuthStatusResponse {
   authEnabled?: boolean;
   enabled?: boolean;
   registrationEnabled?: boolean;
-  authMode?: "local" | "hybrid" | "oidc_enforced";
+  authMode?: "local" | "hybrid" | "oidc_enforced" | "proxy";
   oidcEnabled?: boolean;
   oidcEnforced?: boolean;
   oidcProvider?: string;
@@ -85,7 +86,10 @@ const fetchCsrfToken = async (): Promise<void> => {
   const response = await axios.get<{ token: string; header: string }>(
     `${API_URL}/csrf-token`,
     { withCredentials: true },
-  );
+  ).catch((error) => {
+    if (proxyAuth && axios.isAxiosError(error) && error.response?.status === 401) startPortalSignIn();
+    throw error;
+  });
   csrfToken = response.data.token;
   csrfHeaderName = response.data.header || "x-csrf-token";
 };
@@ -106,8 +110,15 @@ export const authStatus = async (): Promise<AuthStatusResponse> => {
   const response = await axios.get<AuthStatusResponse>(`${API_URL}/auth/status`, {
     withCredentials: true,
   });
+  proxyAuth = response.data.authMode === "proxy";
   cachePasswordPolicy(response.data.passwordPolicy);
   return response.data;
+};
+
+// Proxy mode: the portal gateway owns the session, so an expired one is renewed there.
+// The OAuth callback lives on the portal host, so the return URL must be absolute.
+export const startPortalSignIn = (): void => {
+  window.location.assign(`/oauth2/sign_in?rd=${encodeURIComponent(window.location.href)}`);
 };
 
 export const startOidcSignIn = (returnTo?: string): void => {
@@ -332,6 +343,10 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
+      if (proxyAuth) {
+        startPortalSignIn();
+        return Promise.reject(error);
+      }
       const originalRequest = (error.config || {}) as RetriableRequestConfig;
       const url = String(originalRequest.url || "");
       const isAuthRoute = url.includes("/auth/");

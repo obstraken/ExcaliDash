@@ -10,6 +10,12 @@ A self-hosted dashboard and organizer for [Excalidraw](https://github.com/excali
 
 ![](readme-assets/demo.gif)
 
+## Obstraken fork: portal authentication
+
+`AUTH_MODE=proxy` delegates sign-in to the portal gateway. The backend trusts the `X-Authenticated-Email` header, creates an account per email on first visit and grants `ADMIN` only to `PROXY_ADMIN_EMAIL`; every other account is a `USER`. The gateway must authenticate every HTTP and Socket.IO request, strip client-supplied `X-Authenticated-Email` headers and set the verified value; the backend must only be reachable on that isolated network. Local registration, passwords, API keys, impersonation and role changes are unavailable in this mode; administrators can still list and deactivate accounts. Deploy at the root of its own origin, e.g. `https://whiteboard.tech.obstraken.com`, with `FRONTEND_URL` set to that origin.
+
+Portal integration: https://github.com/obstraken/tech-obstraken.
+
 ## Table of Contents
 
 - [Features](#features)
