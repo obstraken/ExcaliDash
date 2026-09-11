@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Shield,
-  Settings as SettingsIcon,
-  Trash2,
-  User,
-  LogOut,
-} from "lucide-react";
+import { Settings as SettingsIcon, Trash2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { getInitialsFromName } from "../../utils/user";
@@ -44,7 +38,6 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isTrashDragOver, setIsTrashDragOver] = useState(false);
-  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className="px-3 pt-3 sm:pt-4 pb-3 sm:pb-4 border-t border-slate-200/50 dark:border-slate-700/50 space-y-2">
@@ -70,26 +63,6 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({
         <Trash2 size={18} />
         <span className="min-w-0 flex-1 text-left">Trash</span>
       </button>
-
-      {authEnabled && (
-        <button
-          onClick={() => navigate("/profile")}
-          className={footerButtonClass(selectedCollectionId === "PROFILE")}
-        >
-          <User size={18} />
-          <span className="min-w-0 flex-1 text-left">Profile</span>
-        </button>
-      )}
-
-      {authEnabled && isAdmin && (
-        <button
-          onClick={() => navigate("/admin")}
-          className={footerButtonClass(selectedCollectionId === "ADMIN")}
-        >
-          <Shield size={18} />
-          <span className="min-w-0 flex-1 text-left">Admin</span>
-        </button>
-      )}
 
       <button
         onClick={() => navigate("/settings")}
