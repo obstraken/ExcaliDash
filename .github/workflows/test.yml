@@ -12,7 +12,7 @@ permissions:
 jobs:
   backend-tests:
     name: Backend Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
 
   repo-checks:
     name: Repo Checks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
 
   frontend-unit-tests:
     name: Frontend Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +94,7 @@ jobs:
 
   e2e-tests:
     name: E2E Browser Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     
     steps:
       - uses: actions/checkout@v4
@@ -203,7 +203,7 @@ jobs:
   # Security tests for data sanitization
   security-tests:
     name: Security Sanitization Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     
     steps:
       - uses: actions/checkout@v4
