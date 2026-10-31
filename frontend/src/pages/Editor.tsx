@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getInitialLangCode } from "../components/LanguageSelector";
 import type { UserIdentity } from "../utils/identity";
 import { useAuth } from "../context/AuthContext";
+import { startPortalSignIn } from "../api";
 import { useTheme } from "../context/ThemeContext";
 import { usePreference } from "../context/PreferencesContext";
 import { useEditorChrome } from "./editor/useEditorChrome";
@@ -33,7 +34,7 @@ const ExcalidrawEditor: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, authMode, authEnabled } = useAuth();
   const [accessLevel, setAccessLevel] = useState<
     "none" | "view" | "edit" | "owner"
   >("none");
@@ -354,7 +355,8 @@ const ExcalidrawEditor: React.FC = () => {
         gridStep={gridStep}
         onSetGridStep={setGridStep}
         onShareOpen={() => setIsShareOpen(true)}
-        onHistoryOpen={() => setIsHistoryOpen(true)}
+        onHistoryOpen={user || authEnabled === false ? () => setIsHistoryOpen(true) : undefined}
+        onSignIn={authMode === "proxy" && !user ? startPortalSignIn : undefined}
         onToggleAutoHide={handleToggleAutoHide}
       />
       <EditorDialogs

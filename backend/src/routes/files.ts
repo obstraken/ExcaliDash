@@ -96,29 +96,34 @@ export const registerFileRoutes = (
   // ------------------------------------------------------------------
   app.put(
     "/drawings/:drawingId/files/:fileId",
-    // requireAuth runs BEFORE the raw-body parser so unauthenticated clients
-    // can't impose the buffer cost of up to FILE_UPLOAD_MAX_MB per request.
-    requireAuth,
-    rawUpload,
-    handleUploadPayloadError,
-    asyncHandler(async (req, res) => {
-      const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
+    // Access is checked BEFORE the raw-body parser so clients without edit
+    // access can't impose the buffer cost of up to FILE_UPLOAD_MAX_MB per request.
+    // Anonymous visitors may upload through an active edit link-share.
+    optionalAuth,
+    asyncHandler(async (req, res, next) => {
       const { drawingId, fileId } = req.params;
       if (!isValidIdSegment(drawingId) || !isValidIdSegment(fileId)) {
         return res.status(400).json({ error: "Invalid id segment" });
       }
 
+      const userId = req.user?.id;
       const access = await getDrawingAccess({
         prisma,
-        principal: { kind: "user", userId },
+        principal: userId ? { kind: "user", userId } : null,
         drawingId,
       });
       if (!canEditDrawing(access)) {
+        // An expired session token gets a 401 so the client refreshes and retries.
+        if (req.authError) return res.status(401).json({ error: "Unauthorized" });
         // 404 (not 403) so we don't leak the drawing's existence.
         return res.status(404).json({ error: "Drawing not found" });
       }
+      next();
+    }),
+    rawUpload,
+    handleUploadPayloadError,
+    asyncHandler(async (req, res) => {
+      const { drawingId, fileId } = req.params;
 
       const mimeType = (req.headers["content-type"] ?? "")
         .split(";")[0]
@@ -160,7 +165,10 @@ export const registerFileRoutes = (
 
       if (isS3Enabled()) {
         const ext = MIME_TO_EXT[mimeType] ?? "bin";
-        const s3Key = buildS3Key(userId, drawingId, fileId, ext);
+        // Files live under the drawing owner's prefix, whoever uploads them.
+        const owner = await prisma.drawing.findUnique({ where: { id: drawingId }, select: { userId: true } });
+        if (!owner) return res.status(404).json({ error: "Drawing not found" });
+        const s3Key = buildS3Key(owner.userId, drawingId, fileId, ext);
         await uploadBuffer(s3Key, body, mimeType);
         await prisma.drawingFile.upsert({
           where: { drawingId_fileId: { drawingId, fileId } },

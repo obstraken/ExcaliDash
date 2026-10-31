@@ -106,7 +106,8 @@ describe("file routes", () => {
     const app = express();
     registerFileRoutes(app, {
       prisma: prisma as any,
-      requireAuth: (req, _res, next) => {
+      requireAuth: (_req, _res, next) => next(),
+      optionalAuth: (req, _res, next) => {
         req.user = {
           id: "owner-user",
           email: "owner@test.local",
@@ -115,7 +116,6 @@ describe("file routes", () => {
         };
         next();
       },
-      optionalAuth: (_req, _res, next) => next(),
       asyncHandler: (fn) => (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
       },
@@ -147,6 +147,29 @@ describe("file routes", () => {
     });
   });
 
+  it("answers 401 to an expired session token instead of hiding the drawing", async () => {
+    const prisma = { drawingLinkShare: { findFirst: vi.fn().mockResolvedValue(null) } };
+    const app = express();
+    registerFileRoutes(app, {
+      prisma: prisma as any,
+      requireAuth: (_req, _res, next) => next(),
+      optionalAuth: (req, _res, next) => {
+        req.authError = { code: "INVALID_ACCESS_TOKEN" };
+        next();
+      },
+      asyncHandler: (fn) => (req, res, next) => {
+        Promise.resolve(fn(req, res, next)).catch(next);
+      },
+    });
+
+    const response = await request(app)
+      .put("/drawings/drawing-1/files/file-1")
+      .set("Content-Type", "image/png")
+      .send(Buffer.from([1, 2, 3, 4]));
+
+    expect(response.status).toBe(401);
+  });
+
   it("rejects an unsupported Content-Type with 415", async () => {
     s3Mocks.isS3Enabled.mockReturnValue(false);
     const prisma = {
@@ -158,7 +181,8 @@ describe("file routes", () => {
     const app = express();
     registerFileRoutes(app, {
       prisma: prisma as any,
-      requireAuth: (req, _res, next) => {
+      requireAuth: (_req, _res, next) => next(),
+      optionalAuth: (req, _res, next) => {
         req.user = {
           id: "owner-user",
           email: "owner@test.local",
@@ -167,7 +191,6 @@ describe("file routes", () => {
         };
         next();
       },
-      optionalAuth: (_req, _res, next) => next(),
       asyncHandler: (fn) => (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
       },
