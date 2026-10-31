@@ -254,7 +254,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
               Unable to open drawing
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {onSignIn ? "This drawing does not exist, or its share link has expired." : loadError}
+              {loadError}
+              {onSignIn ? " If you received a share link, it may have expired." : null}
             </p>
           </div>
           <button
