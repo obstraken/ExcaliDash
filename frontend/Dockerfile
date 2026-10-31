@@ -5,6 +5,7 @@ WORKDIR /app/frontend
 
 # Copy package files first for better caching
 COPY frontend/package*.json ./
+COPY frontend/scripts/patch-mermaid-subgraphs.mjs ./scripts/patch-mermaid-subgraphs.mjs
 
 # Install dependencies
 RUN npm ci && npm cache clean --force

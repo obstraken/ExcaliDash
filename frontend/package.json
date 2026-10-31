@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check:max-lines": "node ../scripts/check-source-line-count.cjs"
+    "check:max-lines": "node ../scripts/check-source-line-count.cjs",
+    "postinstall": "node scripts/patch-mermaid-subgraphs.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
