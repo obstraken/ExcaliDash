@@ -8,7 +8,7 @@ export const registerDrawingHistoryRoutes = (
 ) => {
   const {
     prisma,
-    optionalAuth,
+    requireAuth,
     asyncHandler,
     parseJsonField,
     invalidateDrawingsCache,
@@ -22,7 +22,7 @@ export const registerDrawingHistoryRoutes = (
   // List snapshots (metadata only)
   app.get(
     "/drawings/:id/history",
-    optionalAuth,
+    requireAuth,
     asyncHandler(async (req, res) => {
       const principal = await getRequestPrincipal(req);
       const { id } = req.params;
@@ -57,7 +57,7 @@ export const registerDrawingHistoryRoutes = (
   // Get full snapshot for preview
   app.get(
     "/drawings/:id/history/:snapshotId",
-    optionalAuth,
+    requireAuth,
     asyncHandler(async (req, res) => {
       const principal = await getRequestPrincipal(req);
       const { id, snapshotId } = req.params;
@@ -89,7 +89,7 @@ export const registerDrawingHistoryRoutes = (
   // Restore a snapshot (snapshots current state first, then applies old state)
   app.post(
     "/drawings/:id/history/:snapshotId/restore",
-    optionalAuth,
+    requireAuth,
     asyncHandler(async (req, res) => {
       const principal = await getRequestPrincipal(req);
       const { id, snapshotId } = req.params;

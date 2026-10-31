@@ -87,7 +87,7 @@ const fetchCsrfToken = async (): Promise<void> => {
     `${API_URL}/csrf-token`,
     { withCredentials: true },
   ).catch((error) => {
-    if (proxyAuth && axios.isAxiosError(error) && error.response?.status === 401) startPortalSignIn();
+    if (proxyAuth && !isSharedPage() && axios.isAxiosError(error) && error.response?.status === 401) startPortalSignIn();
     throw error;
   });
   csrfToken = response.data.token;
@@ -120,6 +120,7 @@ export const authStatus = async (): Promise<AuthStatusResponse> => {
 export const startPortalSignIn = (): void => {
   window.location.assign(`/oauth2/sign_in?rd=${encodeURIComponent(window.location.href)}`);
 };
+const isSharedPage = (): boolean => window.location.pathname.startsWith("/shared/");
 
 export const startOidcSignIn = (returnTo?: string): void => {
   const fallbackPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -344,7 +345,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401) {
       if (proxyAuth) {
-        startPortalSignIn();
+        if (!isSharedPage()) startPortalSignIn();
         return Promise.reject(error);
       }
       const originalRequest = (error.config || {}) as RetriableRequestConfig;

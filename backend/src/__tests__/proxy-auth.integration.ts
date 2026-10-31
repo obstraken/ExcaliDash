@@ -95,12 +95,86 @@ describe("trusted portal authentication", () => {
     expect([403, 404]).toContain((await request(app).get(`/drawings/${drawing.id}`).set(admin)).status);
   });
 
-  it("authenticates collaboration sockets from the gateway headers only", async () => {
-    await expect(openSocket({})).rejects.toThrow();
+  it("authenticates collaboration sockets from the gateway headers", async () => {
     const socket = await openSocket(regular);
     const drawing = await prisma.drawing.create({ data: { userId: adminId, name: "Admin private", elements: "[]", appState: "{}" } });
     const denied = new Promise<{ message: string }>(resolve => socket.once("error", resolve));
     socket.emit("join-room", { drawingId: drawing.id, user: { id: regularId, name: "User" } });
     expect((await denied).message).toContain("do not have access");
+  });
+
+  describe("anonymous share links", () => {
+    const shareDrawing = async (permission: "view" | "edit" | null, expiresAt: Date | null = null) => {
+      const drawing = await prisma.drawing.create({ data: { userId: regularId, name: "Shared", elements: "[]", appState: "{}" } });
+      if (permission) {
+        await prisma.drawingLinkShare.create({ data: { drawingId: drawing.id, permission, expiresAt, tokenHash: `test-${drawing.id}`, createdByUserId: regularId } });
+      }
+      return drawing.id;
+    };
+    const anonymousAgent = async () => {
+      const agent = request.agent(app);
+      const csrf = await agent.get("/csrf-token");
+      return { agent, csrfHeader: csrf.body.header as string, csrfToken: csrf.body.token as string };
+    };
+
+    it("reports an anonymous status and keeps account routes closed", async () => {
+      const status = await request(app).get("/auth/status");
+      expect(status.status).toBe(200);
+      expect(status.body).toMatchObject({ authMode: "proxy", authenticated: false });
+      expect((await request(app).get("/auth/me")).status).toBe(401);
+      expect((await request(app).get("/drawings")).status).toBe(401);
+      expect((await request(app).get("/auth/preferences")).status).toBe(401);
+    });
+
+    it("applies the link policy to anonymous reads and writes", async () => {
+      const { agent, csrfHeader, csrfToken } = await anonymousAgent();
+      const put = (id: string) => agent.put(`/drawings/${id}`).set(csrfHeader, csrfToken).send({ name: "Renamed" });
+
+      const unshared = await shareDrawing(null);
+      expect((await request(app).get(`/drawings/${unshared}`)).status).toBe(404);
+      expect((await put(unshared)).status).toBe(404);
+
+      const expired = await shareDrawing("edit", new Date(Date.now() - 1000));
+      expect((await request(app).get(`/drawings/${expired}`)).status).toBe(404);
+      expect((await put(expired)).status).toBe(404);
+
+      const viewOnly = await shareDrawing("view");
+      const read = await request(app).get(`/drawings/${viewOnly}`);
+      expect(read.status).toBe(200);
+      expect(read.body.accessLevel).toBe("view");
+      expect((await put(viewOnly)).status).toBe(404);
+
+      const editable = await shareDrawing("edit");
+      expect((await put(editable)).status).toBe(200);
+      expect((await prisma.drawing.findUnique({ where: { id: editable } }))?.name).toBe("Renamed");
+    });
+
+    it("keeps history and previews for portal members", async () => {
+      const editable = await shareDrawing("edit");
+      expect((await request(app).get(`/drawings/${editable}/history`)).status).toBe(401);
+      expect((await request(app).get(`/drawings/${editable}/preview`)).status).toBe(401);
+      expect((await request(app).get(`/drawings/${editable}/history`).set(regular)).status).toBe(200);
+    });
+
+    it("lets anonymous editors upload images, but not viewers", async () => {
+      const { agent, csrfHeader, csrfToken } = await anonymousAgent();
+      const upload = (id: string) => agent.put(`/drawings/${id}/files/file-1`).set(csrfHeader, csrfToken).set("Content-Type", "image/png").send(Buffer.from([1, 2, 3, 4]));
+      expect((await upload(await shareDrawing("view"))).status).toBe(404);
+      const editable = await shareDrawing("edit");
+      expect((await upload(editable)).status).toBe(200);
+      expect((await request(app).get(`/files/${editable}/file-1`)).status).toBe(200);
+    });
+
+    it("lets anonymous sockets join shared drawings only", async () => {
+      const socket = await openSocket({});
+      const denied = new Promise<{ message: string }>(resolve => socket.once("error", resolve));
+      socket.emit("join-room", { drawingId: await shareDrawing(null), user: { id: regularId, name: "Spoof" } });
+      expect((await denied).message).toContain("do not have access");
+      const viewOnly = await shareDrawing("view");
+      const joined = await new Promise<{ user: { id: string } }>(resolve =>
+        socket.emit("join-room", { drawingId: viewOnly, user: { id: regularId, name: "Spoof" } }, resolve),
+      );
+      expect(joined.user.id).toMatch(/^anon:/);
+    });
   });
 });

@@ -106,7 +106,8 @@ describe("file routes", () => {
     const app = express();
     registerFileRoutes(app, {
       prisma: prisma as any,
-      requireAuth: (req, _res, next) => {
+      requireAuth: (_req, _res, next) => next(),
+      optionalAuth: (req, _res, next) => {
         req.user = {
           id: "owner-user",
           email: "owner@test.local",
@@ -115,7 +116,6 @@ describe("file routes", () => {
         };
         next();
       },
-      optionalAuth: (_req, _res, next) => next(),
       asyncHandler: (fn) => (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
       },
@@ -158,7 +158,8 @@ describe("file routes", () => {
     const app = express();
     registerFileRoutes(app, {
       prisma: prisma as any,
-      requireAuth: (req, _res, next) => {
+      requireAuth: (_req, _res, next) => next(),
+      optionalAuth: (req, _res, next) => {
         req.user = {
           id: "owner-user",
           email: "owner@test.local",
@@ -167,7 +168,6 @@ describe("file routes", () => {
         };
         next();
       },
-      optionalAuth: (_req, _res, next) => next(),
       asyncHandler: (fn) => (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
       },

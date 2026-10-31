@@ -58,7 +58,10 @@ type EditorViewProps = {
   gridStep: number;
   onSetGridStep: (gridStep: number) => void;
   onShareOpen: () => void;
-  onHistoryOpen: () => void;
+  // Absent for anonymous share-link visitors: history stays a member feature.
+  onHistoryOpen?: () => void;
+  // Proxy mode, anonymous visitor: a failed load offers the portal sign-in.
+  onSignIn?: () => void;
   onToggleAutoHide: () => void;
 };
 
@@ -123,6 +126,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   onSetGridStep,
   onShareOpen,
   onHistoryOpen,
+  onSignIn,
   onToggleAutoHide,
 }) => (
   <div className="h-screen flex flex-col bg-white dark:bg-neutral-950 overflow-hidden">
@@ -184,7 +188,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
             Read-only
           </span>
         ) : null}
-        {canEdit && id ? (
+        {canEdit && id && onHistoryOpen ? (
           <button
             onClick={onHistoryOpen}
             className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
@@ -250,14 +254,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
               Unable to open drawing
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {loadError}
+              {onSignIn ? "This drawing does not exist, or its share link has expired." : loadError}
             </p>
           </div>
           <button
-            onClick={onNavigateHome}
+            onClick={onSignIn ?? onNavigateHome}
             className="px-4 py-2 rounded-lg border-2 border-black dark:border-neutral-700 bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 font-semibold hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
-            Back to dashboard
+            {onSignIn ? "Sign in with Google" : "Back to dashboard"}
           </button>
         </div>
       ) : initialData ? (

@@ -21,7 +21,6 @@ export const registerDrawingListRoutes = (
   const {
     prisma,
     requireAuth,
-    optionalAuth,
     asyncHandler,
     parseJsonField,
     getRequestPrincipal,
@@ -221,7 +220,7 @@ export const registerDrawingListRoutes = (
   // Registered before `/drawings/:id` so previews aren't treated as an id.
   app.get(
     "/drawings/:id/preview",
-    optionalAuth,
+    requireAuth,
     asyncHandler(async (req, res) => {
       const principal = await getRequestPrincipal(req);
       const { id } = req.params;

@@ -108,8 +108,10 @@ export const registerSocketHandlers = ({
     try {
       if (config.authMode === "proxy") {
         const email = readProxyEmail(socket.handshake.headers);
-        const user = email ? await resolveProxyUser(prisma, email) : null;
-        if (!user?.isActive) return next(new Error("Authentication required"));
+        // No portal email: anonymous share-link socket, access is enforced on join-room.
+        if (!email) return next();
+        const user = await resolveProxyUser(prisma, email);
+        if (!user.isActive) return next(new Error("Authentication required"));
         getState(socket).principal = { kind: "user", userId: user.id };
         return next();
       }
