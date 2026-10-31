@@ -86,6 +86,10 @@ describe("trusted portal authentication", () => {
     expect(disabled.status).toBe(403);
     expect(disabled.body.code).toBe("ACCOUNT_DISABLED");
     await expect(openSocket(regular)).rejects.toThrow();
+    // A share link must not downgrade a disabled member to an anonymous visitor.
+    const shared = await prisma.drawing.create({ data: { userId: adminId, name: "Linked", elements: "[]", appState: "{}" } });
+    await prisma.drawingLinkShare.create({ data: { drawingId: shared.id, permission: "edit", tokenHash: `test-${shared.id}`, createdByUserId: adminId } });
+    expect((await request(app).get(`/drawings/${shared.id}`).set(regular)).status).toBe(403);
     await prisma.user.update({ where: { id: regularId }, data: { isActive: true } });
   });
 
@@ -175,6 +179,29 @@ describe("trusted portal authentication", () => {
         socket.emit("join-room", { drawingId: viewOnly, user: { id: regularId, name: "Spoof" } }, resolve),
       );
       expect(joined.user.id).toMatch(/^anon:/);
+    });
+
+    it("rechecks the link on every anonymous socket edit", async () => {
+      const drawingId = await shareDrawing("view");
+      const join = (socket: Socket, name: string) => new Promise(resolve => socket.emit("join-room", { drawingId, user: { id: name, name } }, resolve));
+      const member = await openSocket(regular), guest = await openSocket({});
+      await join(member, "Owner"); await join(guest, "Guest");
+      const update = { drawingId, elements: [] };
+      const readOnly = new Promise<{ message: string }>(resolve => guest.once("error", resolve));
+      guest.emit("element-update", update);
+      expect((await readOnly).message).toContain("Read-only");
+
+      await prisma.drawingLinkShare.updateMany({ where: { drawingId }, data: { permission: "edit" } });
+      const relayed = new Promise(resolve => member.once("element-update", resolve));
+      guest.emit("element-update", update);
+      await relayed;
+
+      await prisma.drawingLinkShare.updateMany({ where: { drawingId }, data: { revokedAt: new Date() } });
+      let leaked = false;
+      member.once("element-update", () => { leaked = true; });
+      guest.emit("element-update", update);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      expect(leaked).toBe(false);
     });
   });
 });

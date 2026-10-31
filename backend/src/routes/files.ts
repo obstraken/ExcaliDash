@@ -113,6 +113,8 @@ export const registerFileRoutes = (
         drawingId,
       });
       if (!canEditDrawing(access)) {
+        // An expired session token gets a 401 so the client refreshes and retries.
+        if (req.authError) return res.status(401).json({ error: "Unauthorized" });
         // 404 (not 403) so we don't leak the drawing's existence.
         return res.status(404).json({ error: "Drawing not found" });
       }

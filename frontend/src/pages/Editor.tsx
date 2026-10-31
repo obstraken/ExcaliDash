@@ -34,7 +34,7 @@ const ExcalidrawEditor: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
-  const { user, authMode } = useAuth();
+  const { user, authMode, authEnabled } = useAuth();
   const [accessLevel, setAccessLevel] = useState<
     "none" | "view" | "edit" | "owner"
   >("none");
@@ -355,7 +355,7 @@ const ExcalidrawEditor: React.FC = () => {
         gridStep={gridStep}
         onSetGridStep={setGridStep}
         onShareOpen={() => setIsShareOpen(true)}
-        onHistoryOpen={user ? () => setIsHistoryOpen(true) : undefined}
+        onHistoryOpen={user || authEnabled === false ? () => setIsHistoryOpen(true) : undefined}
         onSignIn={authMode === "proxy" && !user ? startPortalSignIn : undefined}
         onToggleAutoHide={handleToggleAutoHide}
       />
