@@ -321,3 +321,12 @@ If you find ExcaliDash useful, please consider [sponsoring](https://github.com/s
   - <https://github.com/Prakash-sa/system-design-ultimatum/tree/main>
   - <https://github.com/kitsteam/excalidraw-examples/tree/main>
 - [The amazing work of Excalidraw & contributors](https://www.npmjs.com/package/@excalidraw/excalidraw)
+
+### Mermaid subgraph compatibility
+
+The frontend applies `scripts/patch-mermaid-subgraphs.mjs` during `npm ci` / `npm install`
+to keep Mermaid 11.17 subgraphs editable with `mermaid-to-excalidraw` 2.2.2
+([upstream issue](https://github.com/excalidraw/mermaid-to-excalidraw/issues/107)).
+The patch matches exact SVG-prefixed IDs and fails installation if the parser
+changes unexpectedly. Reassess it when upgrading the converter. The regression
+is covered by `e2e/tests/mermaid-conversion.spec.ts`.
